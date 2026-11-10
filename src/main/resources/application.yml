@@ -1,0 +1,57 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: study-planner
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/study_planner}
+    username: ${DB_USERNAME:study_planner}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-null-for-primitives: true
+      accept-float-as-int: false
+  ai:
+    mcp:
+      server:
+        name: study-planner
+        version: 0.1.0
+        type: SYNC
+        protocol: STATELESS
+        request-timeout: 120s
+        tool-callback-converter: false
+        annotation-scanner:
+          enabled: false
+        capabilities:
+          resource: false
+          prompt: false
+          completion: false
+server:
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+  tomcat:
+    max-http-form-post-size: 64KB
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+springdoc:
+  swagger-ui:
+    path: /docs
+app:
+  token-lifetime: PT24H
+  quiz:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_QUIZ_MODEL:gpt-4.1-mini}
+    base-url: https://api.openai.com/v1
+    generations-per-hour: 10

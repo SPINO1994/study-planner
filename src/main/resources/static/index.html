@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Keep track of your topics, quiz results, and daily study plan.">
+  <title>Study Planner</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="header">
+    <a class="brand" href="/">Study planner<span class="brand-dot" aria-hidden="true">.</span></a>
+    <div id="account" hidden><span id="account-email"></span><button id="logout" class="quiet" type="button">Sign out</button></div>
+  </header>
+
+  <main>
+    <section id="auth-view" class="auth-view">
+      <p class="eyebrow">A little structure for your study time</p>
+      <h1>What are you learning?</h1>
+      <p class="muted">Track your progress and decide what to study next.</p>
+      <form id="auth-form" class="panel auth-form">
+        <h2 id="auth-title">Sign in</h2>
+        <label>Email<input name="email" type="email" autocomplete="username" maxlength="254" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" minlength="12" maxlength="72" required></label>
+        <p class="hint">Use at least 12 characters.</p>
+        <p id="auth-error" class="error" role="alert"></p>
+        <button id="auth-submit" type="submit">Sign in</button>
+        <button id="auth-toggle" class="quiet" type="button">New here? Create an account</button>
+      </form>
+    </section>
+
+    <div id="workspace" hidden>
+      <div class="workspace-top"><p id="summary" class="muted">Loading your progress…</p><button id="refresh" class="quiet" type="button">Refresh</button></div>
+      <nav aria-label="Workspace" class="tabs">
+        <button type="button" data-view="topics" aria-current="page">Topics</button>
+        <button type="button" data-view="quizzes">Quizzes</button>
+        <button type="button" data-view="schedule">Schedule</button>
+        <button type="button" data-view="mcp">MCP check</button>
+      </nav>
+      <p id="notice" role="status" aria-live="polite"></p>
+
+      <section id="topics-view">
+        <div class="section-heading"><div><h1>Your topics</h1><p class="muted">Quiz scores help the planner find what needs practice.</p></div><button id="add-topic" type="button">Add topic</button></div>
+        <div id="topics-empty" class="empty" hidden><h2>A place to start</h2><p>Add a topic you want to study. You can record a quiz score whenever you test yourself.</p><button id="add-first-topic" class="secondary" type="button">Add your first topic</button></div>
+        <div id="topics-table-wrap" class="table-wrap panel" hidden>
+          <table><caption class="sr-only">Your study topics and progress</caption><thead><tr><th>Topic</th><th>Quiz accuracy</th><th>Study time</th><th>Exam</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody id="topics-list"></tbody></table>
+        </div>
+      </section>
+
+      <section id="quizzes-view" hidden>
+        <div class="section-heading"><div><h1>Quizzes</h1><p class="muted">Save a score from elsewhere, or take a new quiz here.</p></div></div>
+        <div class="quiz-modes" aria-label="Quiz type">
+          <button type="button" data-quiz-mode="manual" aria-pressed="true">Manual results</button>
+          <button type="button" data-quiz-mode="ai" aria-pressed="false">AI quizzes</button>
+        </div>
+
+        <section id="manual-quizzes">
+          <div class="panel quiz-panel"><h2>Record a completed quiz</h2><p class="hint">For quizzes you have already taken in class, online, or on paper.</p>
+            <form id="manual-result-form">
+              <div class="form-row"><label>Topic<select name="topicId" required></select></label><label>Quiz title<input name="title" maxlength="150" placeholder="Practice test 1" required></label></div>
+              <div class="form-row"><label>Correct answers<input name="correctAnswers" type="number" min="0" value="0" required></label><label>Total questions<input name="totalQuestions" type="number" min="1" max="1000" value="10" required></label></div>
+              <label>Notes <span class="optional">optional</span><textarea name="notes" maxlength="1000" rows="2" placeholder="What was difficult?"></textarea></label>
+              <p data-form-error class="error" role="alert"></p><button type="submit">Save result</button>
+            </form>
+          </div>
+          <h2 class="history-heading">Previous results</h2><div id="manual-history" class="quiz-history"></div>
+          <button id="more-manual" class="quiet" type="button" hidden>Load older results</button>
+        </section>
+
+        <section id="ai-quizzes" hidden>
+          <div class="panel quiz-panel"><h2>Make a practice quiz</h2><p class="hint">Four choices per question. You will get your score, explanations, and areas to review after submitting.</p>
+            <p id="ai-status" class="hint" role="status"></p>
+            <form id="generate-quiz-form">
+              <label>Topic<select name="topicId" required></select></label>
+              <div class="form-row"><label>Questions <span class="optional">maximum 30</span><input name="questionCount" type="number" min="1" max="30" value="10" required></label><label>Difficulty<select name="difficulty"><option value="BEGINNER">Beginner</option><option value="INTERMEDIATE" selected>Intermediate</option><option value="ADVANCED">Advanced</option></select></label></div>
+              <p class="hint">Generation uses the server's OpenAI account and may take up to 90 seconds. Only the subject and topic name are sent.</p>
+              <p data-form-error class="error" role="alert"></p><button type="submit">Generate quiz</button>
+              <span id="generation-progress" class="hint" role="status"></span>
+            </form>
+          </div>
+          <section id="quiz-attempt" class="quiz-attempt" hidden>
+            <div class="section-heading"><div><h2 id="attempt-title"></h2><p id="attempt-description" class="muted"></p></div><button id="hide-attempt" class="quiet" type="button">Close quiz</button></div>
+            <form id="attempt-form"><div id="quiz-questions"></div><p data-form-error class="error" role="alert"></p><button type="submit">Submit answers</button></form>
+            <div id="quiz-feedback" hidden aria-live="polite"></div>
+          </section>
+          <h2 class="history-heading">Your AI quizzes</h2><div id="generated-history" class="quiz-history"></div>
+          <button id="more-generated" class="quiet" type="button" hidden>Load older quizzes</button>
+        </section>
+      </section>
+
+      <section id="schedule-view" hidden>
+        <div class="section-heading"><div><h1>Your schedule</h1><p class="muted">A manageable plan, built around the time you have.</p></div></div>
+        <form id="plan-form" class="panel plan-form">
+          <label>Start date<input name="startDate" type="date" required></label>
+          <label>Days<input name="days" type="number" min="1" max="14" value="3" required></label>
+          <label>Minutes per day<input name="dailyMinutes" type="number" min="15" max="480" step="1" value="60" required></label>
+          <button type="submit">Make a plan</button>
+          <p class="hint form-note">Dates use UTC. Sessions are up to 30 minutes, with weaker topics and upcoming exams first.</p>
+        </form>
+        <div class="plan-picker"><label>Saved plan<select id="plan-select"><option value="">No saved plans yet</option></select></label><button id="more-plans" class="quiet" type="button" hidden>Load older plans</button></div>
+        <div id="plan-empty" class="empty"><p>Your sessions will appear here after you make a plan.</p></div>
+        <div id="plan-detail" hidden><div class="section-heading"><p id="plan-description" class="muted"></p><button id="cancel-plan" class="quiet danger" type="button">Cancel remaining sessions</button></div><div id="sessions"></div></div>
+      </section>
+
+      <section id="mcp-view" hidden>
+        <div class="section-heading"><div><h1>MCP connection</h1><p class="muted">Check the same tools an AI assistant connects to.</p></div></div>
+        <div class="panel connection-panel">
+          <h2>Local server</h2><code id="mcp-url"></code>
+          <p>This check authenticates with your current session, discovers the tools, and reads your study progress through MCP. It does not change your data or call an AI model.</p>
+          <button id="check-mcp" type="button">Run connection check</button>
+          <div id="mcp-result" aria-live="polite"></div>
+        </div>
+        <p class="hint">To use these tools in a conversation, connect an MCP-compatible AI client. No OpenAI API key is needed for this check.</p>
+      </section>
+    </div>
+  </main>
+  <footer>Study planner <span>One session at a time.</span></footer>
+
+  <dialog id="topic-dialog">
+    <form id="topic-form">
+      <div class="dialog-heading"><h2 id="topic-dialog-title">Add topic</h2><button class="quiet" type="button" data-close="topic-dialog" aria-label="Close topic form">×</button></div>
+      <input name="id" type="hidden">
+      <label>Subject<input name="subject" placeholder="Java" maxlength="100" required></label>
+      <label>Topic<input name="name" placeholder="Collections" maxlength="150" required></label>
+      <div class="form-row"><label>Priority<select name="priority"><option value="1">1 — Low</option><option value="2">2</option><option value="3" selected>3 — Normal</option><option value="4">4</option><option value="5">5 — High</option></select></label><label>Estimated minutes<input name="estimatedMinutes" type="number" min="15" max="1200" value="120" required></label></div>
+      <label>Exam date <span class="optional">optional</span><input name="examDate" type="date"></label>
+      <p class="error" data-form-error role="alert"></p><button type="submit">Save topic</button>
+    </form>
+  </dialog>
+
+  <dialog id="quiz-dialog">
+    <form id="quiz-form">
+      <div class="dialog-heading"><h2>Record quiz score</h2><button class="quiet" type="button" data-close="quiz-dialog" aria-label="Close quiz form">×</button></div>
+      <input name="topicId" type="hidden"><p id="quiz-topic" class="muted"></p>
+      <label>Quiz title <span class="optional">optional</span><input name="title" maxlength="150" placeholder="Quiz result"></label>
+      <div class="form-row"><label>Correct answers<input name="correctAnswers" type="number" min="0" value="0" required></label><label>Total questions<input name="totalQuestions" type="number" min="1" max="1000" value="10" required></label></div>
+      <p class="error" data-form-error role="alert"></p><button type="submit">Save result</button>
+    </form>
+  </dialog>
+</body>
+</html>
